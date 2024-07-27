@@ -8,28 +8,25 @@
     </h6>
   </div>
   <q-page padding>
-    <q-layout-grid class="tableHeader" cols="12" spacing>
-      <q-col cols="8">
-        <q-input bg-color="grey-4" rounded standout bottom-slots v-model="text" label="Pesquisar" class="input-field" >
-          <template v-slot:prepend>
-            <q-icon name="search" />
-          </template>
-          <template v-slot:append>
-            <q-icon name="close" @click="text = ''" class="cursor-pointer" />
-          </template>
-        </q-input>
-      </q-col>
-      <q-col cols="4">
-        <q-btn rounded dense icon="add" label="Criar" @click="openViewDialog(row)" color="green" class="button-field"></q-btn>
-      </q-col>
-    </q-layout-grid>
-    <TableComponents :columns="columns" :rows="rows">
+    <div class="tableHeader">
+      <q-input bg-color="grey-4" rounded standout dense bottom-slots v-model="text" label="Pesquisar" class="input-field">
+        <template v-slot:prepend>
+          <q-icon name="search" />
+        </template>
+        <template v-slot:append>
+          <q-icon name="close" @click="text = ''" class="cursor-pointer" />
+        </template>
+      </q-input>
+      <q-btn rounded dense icon="add" label="Criar" @click="openCreatDialog" color="green" class="button-field"></q-btn>
+    </div>
+    <TableComponents :columns="columns" :rows="filteredRows">
       <template #actions="{ row }">
         <div class="dialogsa">
           <q-btn flat round dense icon="visibility" @click="openViewDialog(row)" class="actions-bt" />
           <q-btn flat round dense icon="edit" @click="openEditDialog(row)" class="actions-bt" />
           <q-btn flat round dense icon="delete" @click="openDeleteDialog(row)" class="actions-bt" />
 
+          <!-- View Dialog -->
           <q-dialog v-model="viewDialog.visible" persistent>
             <q-card>
               <q-card-section>
@@ -47,6 +44,7 @@
             </q-card>
           </q-dialog>
 
+          <!-- Edit Dialog -->
           <q-dialog v-model="editDialog.visible" persistent>
             <q-card>
               <q-card-section>
@@ -65,6 +63,7 @@
             </q-card>
           </q-dialog>
 
+          <!-- Delete Dialog -->
           <q-dialog v-model="deleteDialog.visible" persistent>
             <q-card>
               <q-card-section>
@@ -78,23 +77,25 @@
                 <q-btn flat label="Cancelar" color="primary" v-close-popup />
               </q-card-actions>
             </q-card>
-            <q-dialog v-model="creatDialog.visible" persistent>
+          </q-dialog>
+
+          <!-- Create Dialog -->
+          <q-dialog v-model="creatDialog.visible" persistent>
             <q-card>
               <q-card-section>
                 <div class="text-h6">Cadastrar Editora</div>
               </q-card-section>
               <q-card-section class="q-pt-none">
-                <q-input label="Nome" />
-                <q-input label="Email" />
-                <q-input label="Telefone" />
-                <q-input label="Site" />
+                <q-input v-model="newPublisher.name" label="Nome" />
+                <q-input v-model="newPublisher.email" label="Email" />
+                <q-input v-model="newPublisher.telephone" label="Telefone" />
+                <q-input v-model="newPublisher.site" label="Site" />
               </q-card-section>
               <q-card-actions align="right">
-                <q-btn flat label="Salvar" color="primary" @click="saveEdit" />
+                <q-btn flat label="Salvar" color="primary" @click="saveNewPublisher" />
                 <q-btn flat label="Cancelar" color="primary" v-close-popup />
               </q-card-actions>
             </q-card>
-          </q-dialog>
           </q-dialog>
         </div>
       </template>
@@ -117,20 +118,26 @@
   align-items: center;
   justify-content: space-between;
 }
-.input-field, .button-field {
-  width: 100%;
+.input-field {
+  flex: 1;
+}
+
+.button-field {
+  margin-left: 10px;
+  padding: 7px;
+  margin-bottom: 2%;
 }
 </style>
 
 <script setup>
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, computed } from 'vue';
 import TableComponents from '../components/TableComponents.vue';
 import { api, authenticate } from 'src/boot/axios';
 
 onMounted(() => {
   authenticate()
     .then(() => {
-      console.log("Sucessou")
+      console.log("Sucessou");
       getTable();
     })
     .catch(error => {
@@ -144,8 +151,9 @@ const columns = [
 ];
 
 const rows = ref([]);
+const text = ref('');
 
-const getTable = (srch = '') => {
+const getTable = () => {
   api.get('/publisher')
     .then(response => {
       if (Array.isArray(response.data.content)) {
@@ -163,6 +171,7 @@ const getTable = (srch = '') => {
 }
 
 const InfosEdit = ref({});
+const newPublisher = ref({ name: '', email: '', telephone: '', site: '' });
 
 const getApi = (id) => {
   api.get(`/publisher/${id}`)
@@ -210,6 +219,11 @@ const openDeleteDialog = (row) => {
   deleteDialog.value.visible = true;
 };
 
+const openCreatDialog = () => {
+  newPublisher.value = { name: '', email: '', telephone: '', site: '' };
+  creatDialog.value.visible = true;
+}
+
 const saveEdit = () => {
   const index = rows.value.findIndex(r => r.id === editDialog.value.data.id);
   if (index !== -1) {
@@ -237,4 +251,25 @@ const confirmDelete = () => {
       });
   }
 };
+
+const saveNewPublisher = () => {
+  api.post('/publisher', newPublisher.value)
+    .then(response => {
+      rows.value.push(response.data);
+      creatDialog.value.visible = false; 
+    })
+    .catch(error => {
+      console.error("Erro ao salvar nova editora:", error);
+    });
+};
+
+const filteredRows = computed(() => {
+  const searchText = text.value.toLowerCase();
+  return rows.value.filter(row =>
+    row.name.toLowerCase().includes(searchText) ||
+    row.email.toLowerCase().includes(searchText) ||
+    row.telephone.toLowerCase().includes(searchText) ||
+    row.site.toLowerCase().includes(searchText)
+  );
+});
 </script>
