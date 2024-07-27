@@ -1,5 +1,6 @@
 <template>
   <q-table
+    table-header-style="background-color: #220127; color: white"
     :rows="rows"
     :columns="columns"
     row-key="name"

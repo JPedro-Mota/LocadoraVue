@@ -20,7 +20,7 @@
               <q-card-section>
                 <div class="text-h6">Detalhes do Livro</div>
               </q-card-section>
-
+ 
               <q-card-section class="q-pt-none">
                 <div><strong>Nome:</strong> {{ viewDialog.data.name }}</div>
                 <div><strong>Editora:</strong> {{ viewDialog.data.editora }}</div>
