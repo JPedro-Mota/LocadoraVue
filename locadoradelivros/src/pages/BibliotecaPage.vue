@@ -11,13 +11,21 @@
     <div class="tableHeader">
       <q-input bg-color="grey-4" rounded standout dense bottom-slots v-model="text" label="Pesquisar" class="input-field">
         <template v-slot:prepend>
-          <q-icon name="search" @click=" getTable(text)" />
+          <q-icon name="search" @click="getTable(text)" />
         </template>
         <template v-slot:append>
-          <q-icon name="close" @click="text = '', getTable(text)" class="cursor-pointer" />
+          <q-icon name="close" @click="clearSearch" class="cursor-pointer" />
         </template>
       </q-input>
-      <q-btn rounded dense icon="add" label="Criar" @click="openCreatDialog" color="green" class="button-field"></q-btn>
+      <q-btn
+        rounded
+        dense
+        icon="add"
+        label="Criar"
+        @click="openCreateDialog"
+        color="green"
+        class="button-field"
+      />
     </div>
     <TableComponents :columns="columns" :rows="filteredRows">
       <template #actions="{ row }">
@@ -26,17 +34,17 @@
           <q-btn flat round dense icon="edit" @click="openEditDialog(row)" class="actions-bt" />
           <q-btn flat round dense icon="delete" @click="openDeleteDialog(row)" class="actions-bt" />
 
-
+          <!-- Dialog de Visualização -->
           <q-dialog v-model="viewDialog.visible" persistent>
             <q-card>
               <q-card-section>
-                <div class="text-h6">Detalhes da Editora</div>
+                <div class="text-h6">Detalhes do Livro</div>
               </q-card-section>
               <q-card-section class="q-pt-none">
-                <div><strong>Nome:</strong> {{ InfosEdit.name }}</div>
-                <div><strong>Autor:</strong> {{ InfosEdit.author }}</div>
-                <div><strong>Ano de lançamento:</strong> {{ InfosEdit.launchDate }}</div>
-                <div><strong>Data de lançamento:</strong> {{ InfosEdit.publisherId }}</div>
+                <div><strong>Nome:</strong> {{ viewDialog.data.name }}</div>
+                <div><strong>Autor:</strong> {{ viewDialog.data.author }}</div>
+                <div><strong>Ano de Lançamento:</strong> {{ viewDialog.data.launchDate }}</div>
+                <div><strong>Editora:</strong> {{ viewDialog.data.publisherId }}</div>
               </q-card-section>
               <q-card-actions align="right">
                 <q-btn flat label="Fechar" color="primary" v-close-popup />
@@ -44,17 +52,17 @@
             </q-card>
           </q-dialog>
 
-
+          <!-- Dialog de Edição -->
           <q-dialog v-model="editDialog.visible" persistent>
             <q-card>
               <q-card-section>
-                <div class="text-h6">Editar Editora</div>
+                <div class="text-h6">Editar Livro</div>
               </q-card-section>
               <q-card-section class="q-pt-none">
-                <q-input v-model="InfosEdit.name" label="Nome" />
-                <q-input v-model="InfosEdit.author" label="Autor" />
-                <q-input v-model="InfosEdit.totalQuanity" label="Quantidade total" />
-                <q-input v-model="InfosEdit.launchDate" label="Data de lançamento " />
+                <q-input v-model="editDialog.data.name" label="Nome" />
+                <q-input v-model="editDialog.data.author" label="Autor" />
+                <q-input v-model="editDialog.data.launchDate" label="Data de Lançamento" />
+                <q-input v-model="editDialog.data.publisherId" label="Editora" />
               </q-card-section>
               <q-card-actions align="right">
                 <q-btn flat label="Salvar" color="primary" @click="saveEdit" />
@@ -63,14 +71,14 @@
             </q-card>
           </q-dialog>
 
-
+          <!-- Dialog de Exclusão -->
           <q-dialog v-model="deleteDialog.visible" persistent>
             <q-card>
               <q-card-section>
                 <div class="text-h6">Confirmar Exclusão</div>
               </q-card-section>
               <q-card-section class="q-pt-none">
-                Tem certeza que deseja excluir a editora "{{ deleteDialog.data.name }}"?
+                Tem certeza que deseja excluir o livro "{{ deleteDialog.data.name }}"?
               </q-card-section>
               <q-card-actions align="right">
                 <q-btn flat label="Excluir" color="primary" @click="confirmDelete" />
@@ -79,19 +87,20 @@
             </q-card>
           </q-dialog>
 
-          <q-dialog v-model="creatDialog.visible" persistent>
+          <!-- Dialog de Criação -->
+          <q-dialog v-model="createDialog.visible" persistent>
             <q-card>
               <q-card-section>
-                <div class="text-h6">Cadastrar Editora</div>
+                <div class="text-h6">Cadastrar Livro</div>
               </q-card-section>
               <q-card-section class="q-pt-none">
-                <q-input v-model="newPublisher.name" label="Nome" />
-                <q-input v-model="newPublisher.email" label="Email" />
-                <q-input v-model="newPublisher.telephone" label="Telefone" />
-                <q-input v-model="newPublisher.site" label="Site" />
+                <q-input v-model="newBook.name" label="Nome" />
+                <q-input v-model="newBook.author" label="Autor" />
+                <q-input v-model="newBook.launchDate" label="Data de Lançamento" />
+                <q-input v-model="newBook.publisherId" label="Editora" />
               </q-card-section>
               <q-card-actions align="right">
-                <q-btn flat label="Salvar" color="primary" @click="saveNewPublisher" />
+                <q-btn flat label="Salvar" color="primary" @click="saveNewBook" />
                 <q-btn flat label="Cancelar" color="primary" v-close-popup />
               </q-card-actions>
             </q-card>
@@ -120,7 +129,6 @@
 .input-field {
   flex: 1;
 }
-
 .button-field {
   margin-left: 10px;
   padding: 7px;
@@ -136,7 +144,7 @@ import { api, authenticate } from 'src/boot/axios';
 onMounted(() => {
   authenticate()
     .then(() => {
-      console.log("Sucessou");
+      console.log("Sucesso na autenticação");
       getTable();
     })
     .catch(error => {
@@ -153,7 +161,7 @@ const rows = ref([]);
 const text = ref('');
 
 const getTable = (inputSearch = '') => {
-  api.get('/book', {params: {search: inputSearch}})
+  api.get('/book', { params: { search: inputSearch } })
     .then(response => {
       if (Array.isArray(response.data.content)) {
         rows.value = response.data.content;
@@ -169,20 +177,27 @@ const getTable = (inputSearch = '') => {
     });
 }
 
-const InfosEdit = ref({});
-const newPublisher = ref({ name: '', email: '', telephone: '', site: '' });
-
-const getApi = (id) => {
-  api.get(`/book/${id}`)
-    .then(response => {
-      InfosEdit.value = response.data;
-      console.log(InfosEdit.value);
-    })
-    .catch(error => {
-      console.error("Erro", error);
-    });
+// Nova função para pesquisar a tabela
+const searchTable = () => {
+  getTable(text.value);
 }
 
+const filteredRows = computed(() => {
+  const searchText = text.value.toLowerCase();
+  return rows.value.filter(row =>
+    row.name.toLowerCase().includes(searchText) ||
+    row.author.toLowerCase().includes(searchText) ||
+    row.launchDate.toLowerCase().includes(searchText) ||
+    row.publisherId.toLowerCase().includes(searchText)
+  );
+});
+
+const clearSearch = () => {
+  text.value = '';
+  searchTable();  // Atualizar a tabela após limpar a pesquisa
+};
+
+// Funções para manipular os diálogos
 const viewDialog = ref({
   visible: false,
   data: {},
@@ -198,13 +213,13 @@ const deleteDialog = ref({
   data: {}
 });
 
-const creatDialog = ref({
+const createDialog = ref({
   visible: false,
   data: {}
 });
 
 const openViewDialog = (row) => {
-  getApi(row.id);
+  viewDialog.value.data = row;
   viewDialog.value.visible = true;
 };
 
@@ -218,9 +233,9 @@ const openDeleteDialog = (row) => {
   deleteDialog.value.visible = true;
 };
 
-const openCreatDialog = () => {
-  newBook.value = { name: '', email: '', telephone: '', site: '' };
-  creatDialog.value.visible = true;
+const openCreateDialog = () => {
+  newBook.value = { name: '', author: '', launchDate: '', publisherId: '' };
+  createDialog.value.visible = true;
 }
 
 const saveEdit = () => {
@@ -251,24 +266,14 @@ const confirmDelete = () => {
   }
 };
 
-const saveNewPublisher = () => {
-  api.post('/book', newPublisher.value)
+const saveNewBook = () => {
+  api.post('/book', newBook.value)
     .then(response => {
       rows.value.push(response.data);
-      creatDialog.value.visible = false;
+      createDialog.value.visible = false;
     })
     .catch(error => {
-      console.error("Erro ao salvar nova editora:", error);
+      console.error("Erro ao salvar novo livro:", error);
     });
 };
-
-const filteredRows = computed(() => {
-  const searchText = text.value.toLowerCase();
-  return rows.value.filter(row =>
-    row.name.toLowerCase().includes(searchText) ||
-    row.email.toLowerCase().includes(searchText) ||
-    row.telephone.toLowerCase().includes(searchText) ||
-    row.site.toLowerCase().includes(searchText)
-  );
-});
 </script>

@@ -1,7 +1,9 @@
 <template>
   <div class="title">
     <h6>
-      <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="30px" fill="#000000"><path d="M480-480q-66 0-113-47t-47-113q0-66 47-113t113-47q66 0 113 47t47 113q0 66-47 113t-113 47ZM160-160v-112q0-34 17.5-62.5T224-378q62-31 126-46.5T480-440q66 0 130 15.5T736-378q29 15 46.5 43.5T800-272v112H160Z"/></svg>
+      <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="30px" fill="#000000">
+        <path d="M480-480q-66 0-113-47t-47-113q0-66 47-113t113-47q66 0 113 47t47 113q0 66-47 113t-113 47ZM160-160v-112q0-34 17.5-62.5T224-378q62-31 126-46.5T480-440q66 0 130 15.5T736-378q29 15 46.5 43.5T800-272v112H160Z"/>
+      </svg>
       Locatário
     </h6>
   </div>
@@ -9,13 +11,13 @@
     <div class="tableHeader">
       <q-input bg-color="grey-4" rounded standout dense bottom-slots v-model="text" label="Pesquisar" class="input-field">
         <template v-slot:prepend>
-          <q-icon name="search" @click=" getTable(text)" />
+          <q-icon name="search" @click="getTable(text)" />
         </template>
         <template v-slot:append>
-          <q-icon name="close" @click="text = '', getTable(text)" class="cursor-pointer" />
+          <q-icon name="close" @click="clearSearch" class="cursor-pointer" />
         </template>
       </q-input>
-      <q-btn rounded dense icon="add" label="Criar" @click="openCreatDialog" color="green" class="button-field"></q-btn>
+      <q-btn rounded dense icon="add" label="Criar" @click="openCreateDialog" color="green" class="button-field"></q-btn>
     </div>
     <TableComponents :columns="columns" :rows="filteredRows">
       <template #actions="{ row }">
@@ -24,18 +26,17 @@
           <q-btn flat round dense icon="edit" @click="openEditDialog(row)" class="actions-bt" />
           <q-btn flat round dense icon="delete" @click="openDeleteDialog(row)" class="actions-bt" />
 
-
           <q-dialog v-model="viewDialog.visible" persistent>
             <q-card>
               <q-card-section>
-                <div class="text-h6">Detalhes da Editora</div>
+                <div class="text-h6">Detalhes do Locatário</div>
               </q-card-section>
               <q-card-section class="q-pt-none">
                 <div><strong>Id:</strong> {{ InfosEdit.id }}</div>
                 <div><strong>Nome:</strong> {{ InfosEdit.name }}</div>
                 <div><strong>Email:</strong> {{ InfosEdit.email }}</div>
-                <div><strong>Telephone:</strong> {{ InfosEdit.telephone }}</div>
-                <div><strong>Endereço:</strong> {{ InfosEdit.address}}</div>
+                <div><strong>Telefone:</strong> {{ InfosEdit.telephone }}</div>
+                <div><strong>Endereço:</strong> {{ InfosEdit.address }}</div>
                 <div><strong>CPF:</strong> {{ InfosEdit.cpf }}</div>
               </q-card-section>
               <q-card-actions align="right">
@@ -44,19 +45,18 @@
             </q-card>
           </q-dialog>
 
-
           <q-dialog v-model="editDialog.visible" persistent>
             <q-card>
               <q-card-section>
-                <div class="text-h6">Editar Editora</div>
+                <div class="text-h6">Editar Locatário</div>
               </q-card-section>
               <q-card-section class="q-pt-none">
                 <q-input v-model="InfosEdit.id" label="Id" />
                 <q-input v-model="InfosEdit.name" label="Nome" />
                 <q-input v-model="InfosEdit.email" label="E-mail" />
                 <q-input v-model="InfosEdit.telephone" label="Telefone" />
-                <q-input v-model="InfosEdit.address" label="Endereço " />
-                <q-input v-model="InfosEdit.cpf" label="CPF " />
+                <q-input v-model="InfosEdit.address" label="Endereço" />
+                <q-input v-model="InfosEdit.cpf" label="CPF" />
               </q-card-section>
               <q-card-actions align="right">
                 <q-btn flat label="Salvar" color="primary" @click="saveEdit" />
@@ -65,14 +65,13 @@
             </q-card>
           </q-dialog>
 
-
           <q-dialog v-model="deleteDialog.visible" persistent>
             <q-card>
               <q-card-section>
                 <div class="text-h6">Confirmar Exclusão</div>
               </q-card-section>
               <q-card-section class="q-pt-none">
-                Tem certeza que deseja excluir a editora "{{ deleteDialog.data.name }}"?
+                Tem certeza que deseja excluir o locatário "{{ deleteDialog.data.name }}"?
               </q-card-section>
               <q-card-actions align="right">
                 <q-btn flat label="Excluir" color="primary" @click="confirmDelete" />
@@ -81,19 +80,20 @@
             </q-card>
           </q-dialog>
 
-          <q-dialog v-model="creatDialog.visible" persistent>
+          <q-dialog v-model="createDialog.visible" persistent>
             <q-card>
               <q-card-section>
-                <div class="text-h6">Cadastrar Editora</div>
+                <div class="text-h6">Cadastrar Locatário</div>
               </q-card-section>
               <q-card-section class="q-pt-none">
                 <q-input v-model="newRenter.name" label="Nome" />
                 <q-input v-model="newRenter.email" label="Email" />
                 <q-input v-model="newRenter.telephone" label="Telefone" />
-                <q-input v-model="newRenterr.site" label="Site" />
+                <q-input v-model="newRenter.address" label="Endereço" />
+                <q-input v-model="newRenter.cpf" label="CPF" />
               </q-card-section>
               <q-card-actions align="right">
-                <q-btn flat label="Salvar" color="primary" @click="saveNewPublisher" />
+                <q-btn flat label="Salvar" color="primary" @click="saveNewRenter" />
                 <q-btn flat label="Cancelar" color="primary" v-close-popup />
               </q-card-actions>
             </q-card>
@@ -122,7 +122,6 @@
 .input-field {
   flex: 1;
 }
-
 .button-field {
   margin-left: 10px;
   padding: 7px;
@@ -138,7 +137,7 @@ import { api, authenticate } from 'src/boot/axios';
 onMounted(() => {
   authenticate()
     .then(() => {
-      console.log("Sucessou");
+      console.log("Sucesso");
       getTable();
     })
     .catch(error => {
@@ -155,7 +154,7 @@ const rows = ref([]);
 const text = ref('');
 
 const getTable = (inputSearch = '') => {
-  api.get('/renter', {params: {search: inputSearch}})
+  api.get('/renter', { params: { search: inputSearch } })
     .then(response => {
       if (Array.isArray(response.data.content)) {
         rows.value = response.data.content;
@@ -172,7 +171,7 @@ const getTable = (inputSearch = '') => {
 }
 
 const InfosEdit = ref({});
-const newPublisher = ref({ name: '', email: '', telephone: '', site: '' });
+const newRenter = ref({ name: '', email: '', telephone: '', address: '', cpf: '' });
 
 const getApi = (id) => {
   api.get(`/renter/${id}`)
@@ -200,7 +199,7 @@ const deleteDialog = ref({
   data: {}
 });
 
-const creatDialog = ref({
+const createDialog = ref({
   visible: false,
   data: {}
 });
@@ -212,6 +211,7 @@ const openViewDialog = (row) => {
 
 const openEditDialog = (row) => {
   editDialog.value.data = { ...row };
+  InfosEdit.value = { ...row };
   editDialog.value.visible = true;
 };
 
@@ -220,9 +220,9 @@ const openDeleteDialog = (row) => {
   deleteDialog.value.visible = true;
 };
 
-const openCreatDialog = () => {
+const openCreateDialog = () => {
   newRenter.value = { name: '', email: '', telephone: '', address: '', cpf: '' };
-  creatDialog.value.visible = true;
+  createDialog.value.visible = true;
 }
 
 const saveEdit = () => {
@@ -253,15 +253,20 @@ const confirmDelete = () => {
   }
 };
 
-const saveNewPublisher = () => {
-  api.post('/renter', newPublisher.value)
+const saveNewRenter = () => {
+  api.post('/renter', newRenter.value)
     .then(response => {
       rows.value.push(response.data);
-      creatDialog.value.visible = false;
+      createDialog.value.visible = false;
     })
     .catch(error => {
-      console.error("Erro ao salvar nova editora:", error);
+      console.error("Erro ao salvar novo locatário:", error);
     });
+};
+
+const clearSearch = () => {
+  text.value = '';
+  getTable();
 };
 
 const filteredRows = computed(() => {
@@ -270,7 +275,8 @@ const filteredRows = computed(() => {
     row.name.toLowerCase().includes(searchText) ||
     row.email.toLowerCase().includes(searchText) ||
     row.telephone.toLowerCase().includes(searchText) ||
-    row.site.toLowerCase().includes(searchText)
+    (row.address && row.address.toLowerCase().includes(searchText)) ||
+    (row.cpf && row.cpf.toLowerCase().includes(searchText))
   );
 });
 </script>
