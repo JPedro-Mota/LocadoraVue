@@ -244,7 +244,7 @@ const saveEdit = () => {
   console.log("Dados antes de salvar a edição:", bookToEdit.value);
   const index = rows.value.findIndex(r => r.id === editDialog.value.data.id);
   if (index !== -1) {
-    api.put(`/book/${editDialog.value.data.id}`, {...bookToEdit.value, publisherId: Number(bookToEdit.value.publisherId)})
+    api.put( `/book`, {...bookToEdit.value, publisherId: Number(bookToEdit.value.publisherId)})
       .then(response => {
         console.log("Resposta da API ao salvar a edição:", response.data);
         rows.value[index] = { ...response.data };
