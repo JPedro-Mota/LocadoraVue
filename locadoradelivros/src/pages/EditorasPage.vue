@@ -1,7 +1,7 @@
 <template>
   <div class="title">
     <h6>
-      <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#000000">
+      <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="30px" fill="#000000">
         <path d="M120-120v-170l528-527q12-11 26.5-17t30.5-6q16 0 31 6t26 18l55 56q12 11 17.5 26t5.5 30q0 16-5.5 30.5T817-647L290-120H120Zm584-528 56-56-56-56-56 56 56 56Z"/>
       </svg>
       Editora
@@ -11,13 +11,13 @@
     <div class="tableHeader">
       <q-input bg-color="grey-4" rounded standout dense bottom-slots v-model="text" label="Pesquisar" class="input-field">
         <template v-slot:prepend>
-          <q-icon name="search" />
+          <q-icon name="search" @click="getTable(text)" />
         </template>
         <template v-slot:append>
-          <q-icon name="close" @click="text = ''" class="cursor-pointer" />
+          <q-icon name="close" @click="clearSearch" class="cursor-pointer" />
         </template>
       </q-input>
-      <q-btn rounded dense icon="add" label="Criar" @click="openCreatDialog" color="green" class="button-field"></q-btn>
+      <q-btn rounded dense icon="add" label="Criar" @click="openCreateDialog" color="green" class="button-field"></q-btn>
     </div>
     <TableComponents :columns="columns" :rows="filteredRows">
       <template #actions="{ row }">
@@ -26,7 +26,6 @@
           <q-btn flat round dense icon="edit" @click="openEditDialog(row)" class="actions-bt" />
           <q-btn flat round dense icon="delete" @click="openDeleteDialog(row)" class="actions-bt" />
 
-          <!-- View Dialog -->
           <q-dialog v-model="viewDialog.visible" persistent>
             <q-card>
               <q-card-section>
@@ -44,7 +43,6 @@
             </q-card>
           </q-dialog>
 
-          <!-- Edit Dialog -->
           <q-dialog v-model="editDialog.visible" persistent>
             <q-card>
               <q-card-section>
@@ -63,7 +61,6 @@
             </q-card>
           </q-dialog>
 
-          <!-- Delete Dialog -->
           <q-dialog v-model="deleteDialog.visible" persistent>
             <q-card>
               <q-card-section>
@@ -79,8 +76,7 @@
             </q-card>
           </q-dialog>
 
-          <!-- Create Dialog -->
-          <q-dialog v-model="creatDialog.visible" persistent>
+          <q-dialog v-model="createDialog.visible" persistent>
             <q-card>
               <q-card-section>
                 <div class="text-h6">Cadastrar Editora</div>
@@ -121,7 +117,6 @@
 .input-field {
   flex: 1;
 }
-
 .button-field {
   margin-left: 10px;
   padding: 7px;
@@ -137,7 +132,7 @@ import { api, authenticate } from 'src/boot/axios';
 onMounted(() => {
   authenticate()
     .then(() => {
-      console.log("Sucessou");
+      console.log("Sucesso");
       getTable();
     })
     .catch(error => {
@@ -153,8 +148,8 @@ const columns = [
 const rows = ref([]);
 const text = ref('');
 
-const getTable = () => {
-  api.get('/publisher')
+const getTable = (inputSearch = '') => {
+  api.get('/publisher', { params: { search: inputSearch } })
     .then(response => {
       if (Array.isArray(response.data.content)) {
         rows.value = response.data.content;
@@ -199,7 +194,7 @@ const deleteDialog = ref({
   data: {}
 });
 
-const creatDialog = ref({
+const createDialog = ref({
   visible: false,
   data: {}
 });
@@ -211,6 +206,7 @@ const openViewDialog = (row) => {
 
 const openEditDialog = (row) => {
   editDialog.value.data = { ...row };
+  InfosEdit.value = { ...row };
   editDialog.value.visible = true;
 };
 
@@ -219,9 +215,9 @@ const openDeleteDialog = (row) => {
   deleteDialog.value.visible = true;
 };
 
-const openCreatDialog = () => {
+const openCreateDialog = () => {
   newPublisher.value = { name: '', email: '', telephone: '', site: '' };
-  creatDialog.value.visible = true;
+  createDialog.value.visible = true;
 }
 
 const saveEdit = () => {
@@ -256,20 +252,26 @@ const saveNewPublisher = () => {
   api.post('/publisher', newPublisher.value)
     .then(response => {
       rows.value.push(response.data);
-      creatDialog.value.visible = false; 
+      createDialog.value.visible = false;
     })
     .catch(error => {
-      console.error("Erro ao salvar nova editora:", error);
+      console.error("Erro ao criar nova editora:", error);
     });
 };
 
+const clearSearch = () => {
+  text.value = '';
+  getTable();
+};
+
 const filteredRows = computed(() => {
-  const searchText = text.value.toLowerCase();
+  if (!text.value) {
+    return rows.value;
+  }
   return rows.value.filter(row =>
-    row.name.toLowerCase().includes(searchText) ||
-    row.email.toLowerCase().includes(searchText) ||
-    row.telephone.toLowerCase().includes(searchText) ||
-    row.site.toLowerCase().includes(searchText)
+    Object.values(row).some(value =>
+      value.toString().toLowerCase().includes(text.value.toLowerCase())
+    )
   );
 });
 </script>

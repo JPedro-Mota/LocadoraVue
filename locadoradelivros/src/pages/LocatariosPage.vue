@@ -29,10 +29,10 @@
           <q-dialog v-model="viewDialog.visible" persistent>
             <q-card>
               <q-card-section>
-                <div class="text-h6">Detalhes do Locatário</div>
+                <div class="text-h6">Detalhes da Locatário</div>
               </q-card-section>
               <q-card-section class="q-pt-none">
-                <div><strong>Id:</strong> {{ InfosEdit.id }}</div>
+                <div><strong>ID:</strong> {{ InfosEdit.id }}</div>
                 <div><strong>Nome:</strong> {{ InfosEdit.name }}</div>
                 <div><strong>Email:</strong> {{ InfosEdit.email }}</div>
                 <div><strong>Telefone:</strong> {{ InfosEdit.telephone }}</div>
@@ -51,12 +51,11 @@
                 <div class="text-h6">Editar Locatário</div>
               </q-card-section>
               <q-card-section class="q-pt-none">
-                <q-input v-model="InfosEdit.id" label="Id" />
-                <q-input v-model="InfosEdit.name" label="Nome" />
-                <q-input v-model="InfosEdit.email" label="E-mail" />
-                <q-input v-model="InfosEdit.telephone" label="Telefone" />
-                <q-input v-model="InfosEdit.address" label="Endereço" />
-                <q-input v-model="InfosEdit.cpf" label="CPF" />
+                <q-input v-model="editDialog.data.name" label="Nome" />
+                <q-input v-model="editDialog.email" label="Email" />
+                <q-input v-model="editDialog.telephone" label="Telefone" />
+                <q-input v-model="editDialog.address" label="Endereço" />
+                <q-input v-model="editDialog.cpf" label="CPF" mask="###.###.###-##" />
               </q-card-section>
               <q-card-actions align="right">
                 <q-btn flat label="Salvar" color="primary" @click="saveEdit" />
@@ -71,7 +70,7 @@
                 <div class="text-h6">Confirmar Exclusão</div>
               </q-card-section>
               <q-card-section class="q-pt-none">
-                Tem certeza que deseja excluir o locatário "{{ deleteDialog.data.name }}"?
+                Tem certeza que deseja excluir a editora "{{ deleteDialog.data.name }}"?
               </q-card-section>
               <q-card-actions align="right">
                 <q-btn flat label="Excluir" color="primary" @click="confirmDelete" />
@@ -86,11 +85,13 @@
                 <div class="text-h6">Cadastrar Locatário</div>
               </q-card-section>
               <q-card-section class="q-pt-none">
-                <q-input v-model="newRenter.name" label="Nome" />
-                <q-input v-model="newRenter.email" label="Email" />
-                <q-input v-model="newRenter.telephone" label="Telefone" />
-                <q-input v-model="newRenter.address" label="Endereço" />
-                <q-input v-model="newRenter.cpf" label="CPF" />
+                <q-form @submit="onSubmit" class="q-gutter-md q-my-auto">
+                  <q-input v-model="newRenter.name" label="Nome" />
+                  <q-input v-model="newRenter.email" label="Email" />
+                  <q-input v-model="newRenter.telephone" label="Telefone" />
+                  <q-input v-model="newRenter.address" label="Endereço" />
+                  <q-input v-model="newRenter.cpf" label="CPF" mask="###.###.###-##" />
+                </q-form>
               </q-card-section>
               <q-card-actions align="right">
                 <q-btn flat label="Salvar" color="primary" @click="saveNewRenter" />
@@ -174,7 +175,7 @@ const InfosEdit = ref({});
 const newRenter = ref({ name: '', email: '', telephone: '', address: '', cpf: '' });
 
 const getApi = (id) => {
-  api.get(`/renter/${id}`)
+  api.get(`/renter/ ` + id)
     .then(response => {
       InfosEdit.value = response.data;
       console.log(InfosEdit.value);
@@ -210,8 +211,8 @@ const openViewDialog = (row) => {
 };
 
 const openEditDialog = (row) => {
+  getApi(row.id);
   editDialog.value.data = { ...row };
-  InfosEdit.value = { ...row };
   editDialog.value.visible = true;
 };
 
@@ -254,13 +255,15 @@ const confirmDelete = () => {
 };
 
 const saveNewRenter = () => {
+  console.log("Tentando criar novo locatário com:", newRenter.value);
   api.post('/renter', newRenter.value)
     .then(response => {
+      console.log("Locatário criado com sucesso:", response.data);
       rows.value.push(response.data);
       createDialog.value.visible = false;
     })
     .catch(error => {
-      console.error("Erro ao salvar novo locatário:", error);
+      console.error("Erro ao criar novo locatário:", error.response ? error.response.data : error.message);
     });
 };
 
@@ -270,13 +273,17 @@ const clearSearch = () => {
 };
 
 const filteredRows = computed(() => {
-  const searchText = text.value.toLowerCase();
+  if (!text.value) {
+    return rows.value;
+  }
   return rows.value.filter(row =>
-    row.name.toLowerCase().includes(searchText) ||
-    row.email.toLowerCase().includes(searchText) ||
-    row.telephone.toLowerCase().includes(searchText) ||
-    (row.address && row.address.toLowerCase().includes(searchText)) ||
-    (row.cpf && row.cpf.toLowerCase().includes(searchText))
+    Object.values(row).some(value =>
+      value.toString().toLowerCase().includes(text.value.toLowerCase())
+    )
   );
 });
+
+const onSubmit = () => {
+  console.log("Teste");
+};
 </script>

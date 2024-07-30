@@ -65,7 +65,6 @@
           standout
           v-model="name"
           label="Digite seu nome*"
-          hint="Name and surname"
           lazy-rules
           :rules="[val => val && val.length > 0 || 'Please type something']"
         />

@@ -6,7 +6,94 @@
     </h6>
   </div>
   <q-page padding>
-    <TableComponents :columns="columns" :rows="rows" />
+    <div class="tableHeader">
+      <q-input bg-color="grey-4" rounded standout dense bottom-slots v-model="text" label="Pesquisar" class="input-field">
+        <template v-slot:prepend>
+          <q-icon name="search" @click="getTable(text)" />
+        </template>
+        <template v-slot:append>
+          <q-icon name="close" @click="clearSearch" class="cursor-pointer" />
+        </template>
+      </q-input>
+      <q-btn rounded dense icon="add" label="Criar" @click="openCreateDialog" color="green" class="button-field"></q-btn>
+    </div>
+    <TableComponents :columns="columns" :rows="filteredRows">
+      <template #actions="{ row }">
+        <div class="dialogsa">
+          <q-btn flat round dense icon="visibility" @click="openViewDialog(row)" class="actions-bt" />
+          <q-btn flat round dense icon="edit" @click="openEditDialog(row)" class="actions-bt" />
+          <q-btn flat round dense icon="delete" @click="openDeleteDialog(row)" class="actions-bt" />
+
+          <q-dialog v-model="viewDialog.visible" persistent>
+            <q-card>
+              <q-card-section>
+                <div class="text-h6">Detalhes da Editora</div>
+              </q-card-section>
+              <q-card-section class="q-pt-none">
+                <div><strong>Nome:</strong> {{ InfosEdit.name }}</div>
+                <div><strong>Email:</strong> {{ InfosEdit.email }}</div>
+                <div><strong>Telefone:</strong> {{ InfosEdit.telephone }}</div>
+                <div><strong>Site:</strong> {{ InfosEdit.site }}</div>
+              </q-card-section>
+              <q-card-actions align="right">
+                <q-btn flat label="Fechar" color="primary" v-close-popup />
+              </q-card-actions>
+            </q-card>
+          </q-dialog>
+
+          <q-dialog v-model="editDialog.visible" persistent>
+            <q-card>
+              <q-card-section>
+                <div class="text-h6">Editar Editora</div>
+              </q-card-section>
+              <q-card-section class="q-pt-none">
+                <q-input v-model="InfosEdit.name" label="Nome" />
+                <q-input v-model="InfosEdit.email" label="Email" />
+                <q-input v-model="InfosEdit.telephone" label="Telefone" />
+                <q-input v-model="InfosEdit.site" label="Site" />
+              </q-card-section>
+              <q-card-actions align="right">
+                <q-btn flat label="Salvar" color="primary" @click="saveEdit" />
+                <q-btn flat label="Cancelar" color="primary" v-close-popup />
+              </q-card-actions>
+            </q-card>
+          </q-dialog>
+
+          <q-dialog v-model="deleteDialog.visible" persistent>
+            <q-card>
+              <q-card-section>
+                <div class="text-h6">Confirmar Exclusão</div>
+              </q-card-section>
+              <q-card-section class="q-pt-none">
+                Tem certeza que deseja excluir a editora "{{ deleteDialog.data.name }}"?
+              </q-card-section>
+              <q-card-actions align="right">
+                <q-btn flat label="Excluir" color="primary" @click="confirmDelete" />
+                <q-btn flat label="Cancelar" color="primary" v-close-popup />
+              </q-card-actions>
+            </q-card>
+          </q-dialog>
+
+          <q-dialog v-model="createDialog.visible" persistent>
+            <q-card>
+              <q-card-section>
+                <div class="text-h6">Cadastrar Editora</div>
+              </q-card-section>
+              <q-card-section class="q-pt-none">
+                <q-input v-model="newUser.name" label="Nome" />
+                <q-input v-model="newUser.email" label="Email" />
+                <q-input v-model="newUser.telephone" label="Telefone" />
+                <q-input v-model="newUser.site" label="Site" />
+              </q-card-section>
+              <q-card-actions align="right">
+                <q-btn flat label="Salvar" color="primary" @click="saveNewPublisher" />
+                <q-btn flat label="Cancelar" color="primary" v-close-popup />
+              </q-card-actions>
+            </q-card>
+          </q-dialog>
+        </div>
+      </template>
+    </TableComponents>
   </q-page>
 </template>
 
@@ -20,47 +107,169 @@
   cursor: pointer;
   padding: 5px;
 }
+.tableHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.input-field {
+  flex: 1;
+}
+.button-field {
+  margin-left: 10px;
+  padding: 7px;
+  margin-bottom: 2%;
+}
 </style>
 
 <script setup>
-import TableComponents from '../components/TableComponents.vue'
+import { onMounted, ref, computed } from 'vue';
+import TableComponents from '../components/TableComponents.vue';
+import { api, authenticate } from 'src/boot/axios';
+
+onMounted(() => {
+  authenticate()
+    .then(() => {
+      console.log("Sucesso");
+      getTable();
+    })
+    .catch(error => {
+      console.error("Erro na autenticação", error);
+    });
+});
 
 const columns = [
-  { name: 'name', required: true, label: 'Nome do Livro', align: 'center', field: row => row.name, sortable: true },
-  { name: 'editora', label: 'Editora', field: 'editora', sortable: true, align: 'center' },
-  { name: 'autor', label: 'Autor', field: 'autor', sortable: true, align: 'center' },
-  { name: 'data', label: 'Data', field: 'data', align: 'center' },
-  { name: 'actions', label: 'Ações', align: 'center', field: 'actions', // Define the actions column
-    format: row => `
-      <q-btn flat icon="visibility" @click="viewBook('${row.name}')" class="actions-bt" />
-      <q-btn flat icon="edit" @click="editBook('${row.name}')" class="actions-bt" />
-      <q-btn flat icon="delete" @click="deleteBook('${row.name}')" class="actions-bt" />
-    `
+  { name: 'name', required: true, label: 'Nome', align: 'center', field: row => row.name, sortable: true },
+  { name: 'actions', label: 'Ações', align: 'center' }
+];
+
+const rows = ref([]);
+const text = ref('');
+
+const getTable = (inputSearch = '') => {
+  api.get('/users', { params: { search: inputSearch } })
+    .then(response => {
+      if (Array.isArray(response.data.content)) {
+        rows.value = response.data.content;
+        console.log("Dados obtidos com sucesso");
+      } else {
+        console.error('A resposta da API não é um array:', response.data);
+        rows.value = [];
+      }
+      console.log('Resposta da API:', response.data);
+    })
+    .catch(error => {
+      console.error("Erro ao obter dados:", error);
+    });
+}
+
+const InfosEdit = ref({});
+const newUser = ref({ name: '', email: '', telephone: '', site: '' });
+
+const getApi = (id) => {
+  api.get(`/users/${id}`)
+    .then(response => {
+      InfosEdit.value = response.data;
+      console.log(InfosEdit.value);
+    })
+    .catch(error => {
+      console.error("Erro", error);
+    });
+}
+
+const viewDialog = ref({
+  visible: false,
+  data: {},
+});
+
+const editDialog = ref({
+  visible: false,
+  data: {}
+});
+
+const deleteDialog = ref({
+  visible: false,
+  data: {}
+});
+
+const createDialog = ref({
+  visible: false,
+  data: {}
+});
+
+const openViewDialog = (row) => {
+  getApi(row.id);
+  viewDialog.value.visible = true;
+};
+
+const openEditDialog = (row) => {
+  editDialog.value.data = { ...row };
+  InfosEdit.value = { ...row };
+  editDialog.value.visible = true;
+};
+
+const openDeleteDialog = (row) => {
+  deleteDialog.value.data = row;
+  deleteDialog.value.visible = true;
+};
+
+const openCreateDialog = () => {
+  newUser.value = { name: '', email: '', telephone: '', site: '' };
+  createDialog.value.visible = true;
+}
+
+const saveEdit = () => {
+  const index = rows.value.findIndex(r => r.id === editDialog.value.data.id);
+  if (index !== -1) {
+    api.put(`/users/${editDialog.value.data.id}`, editDialog.value.data)
+      .then(() => {
+        rows.value[index] = { ...editDialog.value.data };
+        editDialog.value.visible = false;
+      })
+      .catch(error => {
+        console.error("Erro ao salvar edição:", error);
+      });
   }
-]
+};
 
-const rows = [
-  { name: 'Livro 1', editora: 'Editora A', autor: 'João da Silva', data: '12/12/2024', actions: '' },
-  { name: 'Livro 2', editora: 'Editora B', autor: 'Maria de Souza', data: '01/01/2023', actions: '' },
-  { name: 'Livro 3', editora: 'Editora C', autor: 'Pedro Pereira', data: '15/05/2022', actions: '' },
-  { name: 'Livro 4', editora: 'Editora D', autor: 'Lucas Lima', data: '10/10/2021', actions: '' },
-  { name: 'Livro 5', editora: 'Editora E', autor: 'Ana Silva', data: '20/09/2020', actions: '' },
-  { name: 'Livro 6', editora: 'Editora F', autor: 'Carlos Alberto', data: '30/08/2019', actions: '' },
-  { name: 'Livro 7', editora: 'Editora G', autor: 'Juliana Lima', data: '15/07/2018', actions: '' },
-  { name: 'Livro 8', editora: 'Editora H', autor: 'Felipe Souza', data: '25/06/2017', actions: '' },
-  { name: 'Livro 9', editora: 'Editora I', autor: 'Renata Santos', data: '05/05/2016', actions: '' }
-]
+const confirmDelete = () => {
+  const index = rows.value.findIndex(r => r.id === deleteDialog.value.data.id);
+  if (index !== -1) {
+    api.delete(`/users/${deleteDialog.value.data.id}`)
+      .then(() => {
+        rows.value.splice(index, 1);
+        deleteDialog.value.visible = false;
+      })
+      .catch(error => {
+        console.error("Erro ao excluir:", error);
+      });
+  }
+};
 
-// Define the methods for button actions
-const viewBook = (name) => {
-  console.log('Viewing book:', name)
-}
+const saveNewPublisher = () => {
+  api.post('/users', newPublisher.value)
+    .then(response => {
+      rows.value.push(response.data);
+      createDialog.value.visible = false;
+    })
+    .catch(error => {
+      console.error("Erro ao criar nova editora:", error);
+    });
+};
 
-const editBook = (name) => {
-  console.log('Editing book:', name)
-}
+const clearSearch = () => {
+  text.value = '';
+  getTable();
+};
 
-const deleteBook = (name) => {
-  console.log('Deleting book:', name)
-}
+const filteredRows = computed(() => {
+  if (!text.value) {
+    return rows.value;
+  }
+  return rows.value.filter(row =>
+    Object.values(row).some(value =>
+      value.toString().toLowerCase().includes(text.value.toLowerCase())
+    )
+  );
+});
 </script>

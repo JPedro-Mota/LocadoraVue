@@ -17,15 +17,7 @@
           <q-icon name="close" @click="clearSearch" class="cursor-pointer" />
         </template>
       </q-input>
-      <q-btn
-        rounded
-        dense
-        icon="add"
-        label="Criar"
-        @click="openCreateDialog"
-        color="green"
-        class="button-field"
-      />
+      <q-btn rounded dense icon="add" label="Criar" @click="openCreateDialog" color="green" class="button-field"></q-btn>
     </div>
     <TableComponents :columns="columns" :rows="filteredRows">
       <template #actions="{ row }">
@@ -34,17 +26,18 @@
           <q-btn flat round dense icon="edit" @click="openEditDialog(row)" class="actions-bt" />
           <q-btn flat round dense icon="delete" @click="openDeleteDialog(row)" class="actions-bt" />
 
-          <!-- Dialog de Visualização -->
           <q-dialog v-model="viewDialog.visible" persistent>
             <q-card>
               <q-card-section>
-                <div class="text-h6">Detalhes do Livro</div>
+                <div class="text-h6">Detalhes da Biblioteca</div>
               </q-card-section>
               <q-card-section class="q-pt-none">
-                <div><strong>Nome:</strong> {{ viewDialog.data.name }}</div>
-                <div><strong>Autor:</strong> {{ viewDialog.data.author }}</div>
-                <div><strong>Ano de Lançamento:</strong> {{ viewDialog.data.launchDate }}</div>
-                <div><strong>Editora:</strong> {{ viewDialog.data.publisherId }}</div>
+                <div><strong>ID:</strong> {{ InfosEdit.id }}</div>
+                <div><strong>Nome:</strong> {{ InfosEdit.name }}</div>
+                <div><strong>Autor:</strong> {{ InfosEdit.author }}</div>
+                <div><strong>Quantidade Total:</strong> {{ InfosEdit.totalQuantity }}</div>
+                <div><strong>Data de lançamento:</strong> {{ InfosEdit.launchDate }}</div>
+                <div><strong>Id da editora:</strong> {{ InfosEdit.publisherId }}</div>
               </q-card-section>
               <q-card-actions align="right">
                 <q-btn flat label="Fechar" color="primary" v-close-popup />
@@ -52,17 +45,18 @@
             </q-card>
           </q-dialog>
 
-          <!-- Dialog de Edição -->
           <q-dialog v-model="editDialog.visible" persistent>
             <q-card>
               <q-card-section>
                 <div class="text-h6">Editar Livro</div>
               </q-card-section>
               <q-card-section class="q-pt-none">
-                <q-input v-model="editDialog.data.name" label="Nome" />
-                <q-input v-model="editDialog.data.author" label="Autor" />
-                <q-input v-model="editDialog.data.launchDate" label="Data de Lançamento" />
-                <q-input v-model="editDialog.data.publisherId" label="Editora" />
+                <q-input v-model="bookToEdit.id" label="Id" />
+                <q-input v-model="bookToEdit.name" label="Nome" />
+                <q-input v-model="bookToEdit.author" label="Autor" />
+                <q-input v-model="bookToEdit.totalQuantity" label="Quantidade total" />
+                <q-input v-model="bookToEdit.launchDate" label="Data de lançamento" type="date" />
+                <q-input v-model="bookToEdit.publisherId" label="Id da editora"/>
               </q-card-section>
               <q-card-actions align="right">
                 <q-btn flat label="Salvar" color="primary" @click="saveEdit" />
@@ -71,14 +65,13 @@
             </q-card>
           </q-dialog>
 
-          <!-- Dialog de Exclusão -->
           <q-dialog v-model="deleteDialog.visible" persistent>
             <q-card>
               <q-card-section>
                 <div class="text-h6">Confirmar Exclusão</div>
               </q-card-section>
               <q-card-section class="q-pt-none">
-                Tem certeza que deseja excluir o livro "{{ deleteDialog.data.name }}"?
+                Tem certeza que deseja excluir a editora "{{ deleteDialog.data.name }}"?
               </q-card-section>
               <q-card-actions align="right">
                 <q-btn flat label="Excluir" color="primary" @click="confirmDelete" />
@@ -87,17 +80,19 @@
             </q-card>
           </q-dialog>
 
-          <!-- Dialog de Criação -->
           <q-dialog v-model="createDialog.visible" persistent>
             <q-card>
               <q-card-section>
-                <div class="text-h6">Cadastrar Livro</div>
+                <div class="text-h6">Cadastrar de livro</div>
               </q-card-section>
               <q-card-section class="q-pt-none">
-                <q-input v-model="newBook.name" label="Nome" />
-                <q-input v-model="newBook.author" label="Autor" />
-                <q-input v-model="newBook.launchDate" label="Data de Lançamento" />
-                <q-input v-model="newBook.publisherId" label="Editora" />
+                <q-form @submit="onSubmit" class="q-gutter-md q-my-auto">
+                  <q-input v-model="newBook.name" label="Nome" />
+                  <q-input v-model="newBook.author" label="Autor" />
+                  <q-input v-model="newBook.totalQuantity" label="Quantidade Total" />
+                  <q-input v-model="newBook.launchDate" label="Data de lançamento" type="date" />
+                  <q-input v-model="newBook.publisherId" label="Id da Editora" />
+                </q-form>
               </q-card-section>
               <q-card-actions align="right">
                 <q-btn flat label="Salvar" color="primary" @click="saveNewBook" />
@@ -121,6 +116,7 @@
   cursor: pointer;
   padding: 5px;
 }
+
 .tableHeader {
   display: flex;
   align-items: center;
@@ -144,7 +140,7 @@ import { api, authenticate } from 'src/boot/axios';
 onMounted(() => {
   authenticate()
     .then(() => {
-      console.log("Sucesso na autenticação");
+      console.log("Sucesso");
       getTable();
     })
     .catch(error => {
@@ -177,27 +173,20 @@ const getTable = (inputSearch = '') => {
     });
 }
 
-// Nova função para pesquisar a tabela
-const searchTable = () => {
-  getTable(text.value);
+const InfosEdit = ref({});
+const newBook = ref({ name: '', author: '', totalQuantity: '', launchDate: '', publisherId: '' });
+
+const getApi = (id) => {
+  api.get(`/book/${id}`)
+    .then(response => {
+      InfosEdit.value = response.data;
+      console.log(InfosEdit.value);
+    })
+    .catch(error => {
+      console.error("Erro", error);
+    });
 }
 
-const filteredRows = computed(() => {
-  const searchText = text.value.toLowerCase();
-  return rows.value.filter(row =>
-    row.name.toLowerCase().includes(searchText) ||
-    row.author.toLowerCase().includes(searchText) ||
-    row.launchDate.toLowerCase().includes(searchText) ||
-    row.publisherId.toLowerCase().includes(searchText)
-  );
-});
-
-const clearSearch = () => {
-  text.value = '';
-  searchTable();  // Atualizar a tabela após limpar a pesquisa
-};
-
-// Funções para manipular os diálogos
 const viewDialog = ref({
   visible: false,
   data: {},
@@ -219,35 +208,50 @@ const createDialog = ref({
 });
 
 const openViewDialog = (row) => {
-  viewDialog.value.data = row;
+  getApi(row.id);
   viewDialog.value.visible = true;
 };
 
 const openEditDialog = (row) => {
+  getApi(row.id);
   editDialog.value.data = { ...row };
+  bookToEdit.value = {
+    id: row.id,
+    name: row.name,
+    author: row.author,
+    totalQuantity: row.totalQuantity,
+    launchDate: row.launchDate,
+    publisherId: row.publisherId
+  };
   editDialog.value.visible = true;
 };
 
-const openDeleteDialog = (row) => {
-  deleteDialog.value.data = row;
-  deleteDialog.value.visible = true;
-};
-
 const openCreateDialog = () => {
-  newBook.value = { name: '', author: '', launchDate: '', publisherId: '' };
+  newBook.value = { name: '', author: '', totalQuantity: '', launchDate: '', publisherId: '' };
   createDialog.value.visible = true;
 }
 
+const bookToEdit = ref({
+  id: '',
+  name: '',
+  author: '',
+  totalQuantity: '',
+  launchDate: '',
+  publisherId: ''
+});
+
 const saveEdit = () => {
+  console.log("Dados antes de salvar a edição:", bookToEdit.value);
   const index = rows.value.findIndex(r => r.id === editDialog.value.data.id);
   if (index !== -1) {
-    api.put(`/book/${editDialog.value.data.id}`, editDialog.value.data)
-      .then(() => {
-        rows.value[index] = { ...editDialog.value.data };
+    api.put(`/book/${editDialog.value.data.id}`, {...bookToEdit.value, publisherId: Number(bookToEdit.value.publisherId)})
+      .then(response => {
+        console.log("Resposta da API ao salvar a edição:", response.data);
+        rows.value[index] = { ...response.data };
         editDialog.value.visible = false;
       })
       .catch(error => {
-        console.error("Erro ao salvar edição:", error);
+        console.error("Erro ao salvar edição:", error.response ? error.response.data : error.message);
       });
   }
 };
@@ -267,13 +271,35 @@ const confirmDelete = () => {
 };
 
 const saveNewBook = () => {
+  console.log("Tentando criar novo livro com:", newBook.value);
   api.post('/book', newBook.value)
     .then(response => {
+      console.log("Livro criado com sucesso:", response.data);
       rows.value.push(response.data);
       createDialog.value.visible = false;
     })
     .catch(error => {
-      console.error("Erro ao salvar novo livro:", error);
+      console.error("Erro ao criar novo livro:", error.response ? error.response.data : error.message);
     });
+};
+
+const clearSearch = () => {
+  text.value = '';
+  getTable();
+};
+
+const filteredRows = computed(() => {
+  if (!text.value) {
+    return rows.value;
+  }
+  return rows.value.filter(row =>
+    Object.values(row).some(value =>
+      value.toString().toLowerCase().includes(text.value.toLowerCase())
+    )
+  );
+});
+
+const onSubmit = () => {
+  console.log("Teste");
 };
 </script>
