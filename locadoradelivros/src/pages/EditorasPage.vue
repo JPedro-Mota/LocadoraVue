@@ -49,10 +49,10 @@
                 <div class="text-h6">Editar Editora</div>
               </q-card-section>
               <q-card-section class="q-pt-none">
-                <q-input v-model="InfosEdit.name" label="Nome" />
-                <q-input v-model="InfosEdit.email" label="Email" />
-                <q-input v-model="InfosEdit.telephone" label="Telefone" />
-                <q-input v-model="InfosEdit.site" label="Site" />
+                <q-input v-model="publisherToEdit.name" label="Nome" />
+                <q-input v-model="publisherToEdit.email" label="Email" />
+                <q-input v-model="publisherToEdit.telephone" label="Telefone" />
+                <q-input v-model="publisherToEdit.site" label="Site" />
               </q-card-section>
               <q-card-actions align="right">
                 <q-btn flat label="Salvar" color="primary" @click="saveEdit" />
@@ -172,6 +172,7 @@ const getApi = (id) => {
   api.get(`/publisher/${id}`)
     .then(response => {
       InfosEdit.value = response.data;
+      publisherToEdit.value = response.data;
       console.log(InfosEdit.value);
     })
     .catch(error => {
@@ -205,8 +206,8 @@ const openViewDialog = (row) => {
 };
 
 const openEditDialog = (row) => {
+  getApi(row.id);
   editDialog.value.data = { ...row };
-  InfosEdit.value = { ...row };
   editDialog.value.visible = true;
 };
 
@@ -220,16 +221,26 @@ const openCreateDialog = () => {
   createDialog.value.visible = true;
 }
 
+const publisherToEdit = ref({
+  id: '',
+  name: '',
+  email: '',
+  telephone: 0,
+  site: ''
+});
+
 const saveEdit = () => {
+  console.log("Dados antes de salvar a edição:", publisherToEdit.value);
   const index = rows.value.findIndex(r => r.id === editDialog.value.data.id);
   if (index !== -1) {
-    api.put(`/publisher/${editDialog.value.data.id}`, editDialog.value.data)
-      .then(() => {
-        rows.value[index] = { ...editDialog.value.data };
+    api.put( `/publisher`, {...publisherToEdit.value})
+      .then(response => {
+        console.log("Resposta da API ao salvar a edição:", response.data);
+        rows.value[index] = { ...response.data };
         editDialog.value.visible = false;
       })
       .catch(error => {
-        console.error("Erro ao salvar edição:", error);
+        console.error("Erro ao salvar edição:", error.response ? error.response.data : error.message);
       });
   }
 };

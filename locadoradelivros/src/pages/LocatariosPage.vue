@@ -26,10 +26,11 @@
           <q-btn flat round dense icon="edit" @click="openEditDialog(row)" class="actions-bt" />
           <q-btn flat round dense icon="delete" @click="openDeleteDialog(row)" class="actions-bt" />
 
+          <!-- View Dialog -->
           <q-dialog v-model="viewDialog.visible" persistent>
             <q-card>
               <q-card-section>
-                <div class="text-h6">Detalhes da Locatário</div>
+                <div class="text-h6">Detalhes do Locatário</div>
               </q-card-section>
               <q-card-section class="q-pt-none">
                 <div><strong>ID:</strong> {{ InfosEdit.id }}</div>
@@ -45,17 +46,18 @@
             </q-card>
           </q-dialog>
 
+          <!-- Edit Dialog -->
           <q-dialog v-model="editDialog.visible" persistent>
             <q-card>
               <q-card-section>
                 <div class="text-h6">Editar Locatário</div>
               </q-card-section>
               <q-card-section class="q-pt-none">
-                <q-input v-model="editDialog.data.name" label="Nome" />
-                <q-input v-model="editDialog.email" label="Email" />
-                <q-input v-model="editDialog.telephone" label="Telefone" />
-                <q-input v-model="editDialog.address" label="Endereço" />
-                <q-input v-model="editDialog.cpf" label="CPF" mask="###.###.###-##" />
+                <q-input v-model="renterToEdit.name" label="Nome" />
+                <q-input v-model="renterToEdit.email" label="Email" />
+                <q-input v-model="renterToEdit.telephone" label="Telefone" />
+                <q-input v-model="renterToEdit.address" label="Endereço" />
+                <q-input v-model="renterToEdit.cpf" label="CPF" mask="###.###.###-##" />
               </q-card-section>
               <q-card-actions align="right">
                 <q-btn flat label="Salvar" color="primary" @click="saveEdit" />
@@ -64,13 +66,14 @@
             </q-card>
           </q-dialog>
 
+          <!-- Delete Dialog -->
           <q-dialog v-model="deleteDialog.visible" persistent>
             <q-card>
               <q-card-section>
                 <div class="text-h6">Confirmar Exclusão</div>
               </q-card-section>
               <q-card-section class="q-pt-none">
-                Tem certeza que deseja excluir a editora "{{ deleteDialog.data.name }}"?
+                Tem certeza que deseja excluir o locatário "{{ deleteDialog.data.name }}"?
               </q-card-section>
               <q-card-actions align="right">
                 <q-btn flat label="Excluir" color="primary" @click="confirmDelete" />
@@ -79,6 +82,7 @@
             </q-card>
           </q-dialog>
 
+          <!-- Create Dialog -->
           <q-dialog v-model="createDialog.visible" persistent>
             <q-card>
               <q-card-section>
@@ -175,10 +179,10 @@ const InfosEdit = ref({});
 const newRenter = ref({ name: '', email: '', telephone: '', address: '', cpf: '' });
 
 const getApi = (id) => {
-  api.get(`/renter/ ` + id)
+  api.get(`/renter/${id}`)
     .then(response => {
       InfosEdit.value = response.data;
-      console.log(InfosEdit.value);
+      renterToEdit.value = response.data; // Preencher dados do locatário
     })
     .catch(error => {
       console.error("Erro", error);
@@ -226,18 +230,27 @@ const openCreateDialog = () => {
   createDialog.value.visible = true;
 }
 
+const renterToEdit = ref({
+  id: 0,
+  name: '',
+  email: '',
+  telephone: 0,
+  address: '',
+  cpf: 0
+});
+
 const saveEdit = () => {
-  const index = rows.value.findIndex(r => r.id === editDialog.value.data.id);
-  if (index !== -1) {
-    api.put(`/renter/${editDialog.value.data.id}`, editDialog.value.data)
-      .then(() => {
-        rows.value[index] = { ...editDialog.value.data };
-        editDialog.value.visible = false;
-      })
-      .catch(error => {
-        console.error("Erro ao salvar edição:", error);
-      });
-  }
+  api.put(`/renter`, { ...renterToEdit.value, telephone: Number(renterToEdit.value.telephone) })
+    .then(() => {
+      const index = rows.value.findIndex(r => r.id === renterToEdit.value.id);
+      if (index !== -1) {
+        rows.value[index] = { ...renterToEdit.value };
+      }
+      editDialog.value.visible = false;
+    })
+    .catch(error => {
+      console.error("Erro ao salvar edição:", error);
+    });
 };
 
 const confirmDelete = () => {

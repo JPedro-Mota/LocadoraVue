@@ -47,10 +47,10 @@
                 <div class="text-h6">Editar Editora</div>
               </q-card-section>
               <q-card-section class="q-pt-none">
-                <q-input v-model="InfosEdit.name" label="Nome" />
-                <q-input v-model="InfosEdit.email" label="Email" />
-                <q-input v-model="InfosEdit.telephone" label="Telefone" />
-                <q-input v-model="InfosEdit.site" label="Site" />
+                <q-input v-model="publisherToEdit.name" label="Nome" />
+                <q-input v-model="publisherToEdit.email" label="Email" />
+                <q-input v-model="publisherToEdit.telephone" label="Telefone" />
+                <q-input v-model="publisherToEdit.site" label="Site" />
               </q-card-section>
               <q-card-actions align="right">
                 <q-btn flat label="Salvar" color="primary" @click="saveEdit" />
@@ -80,10 +80,10 @@
                 <div class="text-h6">Cadastrar Editora</div>
               </q-card-section>
               <q-card-section class="q-pt-none">
-                <q-input v-model="newUser.name" label="Nome" />
-                <q-input v-model="newUser.email" label="Email" />
-                <q-input v-model="newUser.telephone" label="Telefone" />
-                <q-input v-model="newUser.site" label="Site" />
+                <q-input v-model="newPublisher.name" label="Nome" />
+                <q-input v-model="newPublisher.email" label="Email" />
+                <q-input v-model="newPublisher.telephone" label="Telefone" />
+                <q-input v-model="newPublisher.site" label="Site" />
               </q-card-section>
               <q-card-actions align="right">
                 <q-btn flat label="Salvar" color="primary" @click="saveNewPublisher" />
@@ -164,12 +164,13 @@ const getTable = (inputSearch = '') => {
 }
 
 const InfosEdit = ref({});
-const newUser = ref({ name: '', email: '', telephone: '', site: '' });
+const newPublisher = ref({ name: '', email: '', telephone: '', site: '' });
 
 const getApi = (id) => {
   api.get(`/users/${id}`)
     .then(response => {
       InfosEdit.value = response.data;
+      publisherToEdit.value = response.data;
       console.log(InfosEdit.value);
     })
     .catch(error => {
@@ -203,8 +204,8 @@ const openViewDialog = (row) => {
 };
 
 const openEditDialog = (row) => {
+  getApi(row.id);
   editDialog.value.data = { ...row };
-  InfosEdit.value = { ...row };
   editDialog.value.visible = true;
 };
 
@@ -214,20 +215,30 @@ const openDeleteDialog = (row) => {
 };
 
 const openCreateDialog = () => {
-  newUser.value = { name: '', email: '', telephone: '', site: '' };
+  newPublisher.value = { name: '', email: '', telephone: '', site: '' };
   createDialog.value.visible = true;
 }
 
+const publisherToEdit = ref({
+  id: '',
+  name: '',
+  email: '',
+  telephone: 0,
+  site: ''
+});
+
 const saveEdit = () => {
+  console.log("Dados antes de salvar a edição:", publisherToEdit.value);
   const index = rows.value.findIndex(r => r.id === editDialog.value.data.id);
   if (index !== -1) {
-    api.put(`/users/${editDialog.value.data.id}`, editDialog.value.data)
-      .then(() => {
-        rows.value[index] = { ...editDialog.value.data };
+    api.put( `/users`, {...publisherToEdit.value})
+      .then(response => {
+        console.log("Resposta da API ao salvar a edição:", response.data);
+        rows.value[index] = { ...response.data };
         editDialog.value.visible = false;
       })
       .catch(error => {
-        console.error("Erro ao salvar edição:", error);
+        console.error("Erro ao salvar edição:", error.response ? error.response.data : error.message);
       });
   }
 };
@@ -235,7 +246,7 @@ const saveEdit = () => {
 const confirmDelete = () => {
   const index = rows.value.findIndex(r => r.id === deleteDialog.value.data.id);
   if (index !== -1) {
-    api.delete(`/users/${deleteDialog.value.data.id}`)
+    api.delete(`/publisher/${deleteDialog.value.data.id}`)
       .then(() => {
         rows.value.splice(index, 1);
         deleteDialog.value.visible = false;
@@ -247,7 +258,7 @@ const confirmDelete = () => {
 };
 
 const saveNewPublisher = () => {
-  api.post('/users', newPublisher.value)
+  api.post('/publisher', newPublisher.value)
     .then(response => {
       rows.value.push(response.data);
       createDialog.value.visible = false;
