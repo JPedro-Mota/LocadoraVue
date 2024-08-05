@@ -177,7 +177,7 @@ const InfosEdit = ref({});
 const newBook = ref({ name: '', author: '', totalQuantity: '', launchDate: '', publisherId: '' });
 
 const getApi = (id) => {
-  api.get(`/book/${id}`)
+  api.get(`/book/{id}`)
     .then(response => {
       InfosEdit.value = response.data;
       console.log(InfosEdit.value);
