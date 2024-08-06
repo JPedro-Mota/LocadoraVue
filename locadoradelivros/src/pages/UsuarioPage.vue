@@ -44,13 +44,13 @@
           <q-dialog v-model="editDialog.visible" persistent>
             <q-card>
               <q-card-section>
-                <div class="text-h6">Editar Editora</div>
+                <div class="text-h6">Editar Usuário </div>
               </q-card-section>
               <q-card-section class="q-pt-none">
                 <q-input v-model="publisherToEdit.name" label="Nome" />
                 <q-input v-model="publisherToEdit.email" label="Email" />
-                <q-input v-model="publisherToEdit.telephone" label="Telefone" />
-                <q-input v-model="publisherToEdit.site" label="Site" />
+                <q-input v-model="publisherToEdit.password" label="Senha" />
+                <q-input v-model="publisherToEdit.role" label="Nível de acesso" />
               </q-card-section>
               <q-card-actions align="right">
                 <q-btn flat label="Salvar" color="primary" @click="saveEdit" />
@@ -77,13 +77,13 @@
           <q-dialog v-model="createDialog.visible" persistent>
             <q-card>
               <q-card-section>
-                <div class="text-h6">Cadastrar Editora</div>
+                <div class="text-h6">Cadastrar Usuário</div>
               </q-card-section>
               <q-card-section class="q-pt-none">
-                <q-input v-model="newPublisher.name" label="Nome" />
-                <q-input v-model="newPublisher.email" label="Email" />
-                <q-input v-model="newPublisher.telephone" label="Telefone" />
-                <q-input v-model="newPublisher.site" label="Site" />
+                <q-input v-model="publisherToEdit.name" label="Nome" />
+                <q-input v-model="publisherToEdit.email" label="Email" />
+                <q-input v-model="publisherToEdit.password" label="Senha" />
+                  <q-select filled  v-model="publisherToEdit.role" :options="options" label="Nível de acesso" />
               </q-card-section>
               <q-card-actions align="right">
                 <q-btn flat label="Salvar" color="primary" @click="saveNewPublisher" />
